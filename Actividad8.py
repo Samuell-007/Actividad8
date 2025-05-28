@@ -13,7 +13,7 @@ juradospormesa = []
 def guardadatosvotaciones():
     archivo = open("DatosVotaciones.csv", "w", newline="", encoding="utf-8")
     writer = csv.writer(archivo)
-    
+
     writer.writerow(["------------Centro de Votación-----------\n"])
     writer.writerow(["Cantidad de Salones", entry_salon.get()])
     writer.writerow(["Cantidad de Mesas por Salón", entry_mesas.get()])
@@ -29,26 +29,25 @@ def guardadatosvotaciones():
     writer.writerow(["-----------Votantes---------\n"])
     for v in votantes:
         writer.writerow([v["nombre"], v["cedula"], v["salon"], v["mesa"]])
-    
+
     archivo.close()
     messagebox.showinfo("Los datos fueron guardados exitosamente en 'DatosVotaciones.csv'")
 
 def cargar_votantes():
     archivo = filedialog.askopenfilename(title="Seleccionar archivo de votantes", filetypes=[("CSV files", "*.csv")])
     if archivo != "":
-        f = open(archivo, newline='', encoding='utf-8')
-        lector = csv.reader(f)
-        next(lector, None)
-        votantes.clear()
-        for fila in lector:
-            if len(fila) >= 4:
-                votantes.append({
-                    "nombre": fila[0],
-                    "cedula": fila[1],
-                    "salon": fila[2],
-                    "mesa": fila[3]
-                })
-        f.close()
+        with open(archivo, newline='', encoding='utf-8') as f:
+            lector = csv.reader(f)
+            next(lector, None)
+            votantes.clear()
+            for fila in lector:
+                if len(fila) >= 4:
+                    votantes.append({
+                        "nombre": fila[0].strip(),
+                        "cedula": fila[1].strip(),
+                        "salon": fila[2].strip().lower(),
+                        "mesa": fila[3].strip().lower()
+                    })
         messagebox.showinfo("Carga exitosa", "Votantes cargados correctamente.")
     else:
         messagebox.showerror("Error", "No se seleccionó ningún archivo.")
@@ -69,7 +68,7 @@ def mostrar_datos_jurados(indicemesa):
     if jurados == []:
         messagebox.showerror("Error", "No hay jurados registrados para esta mesa.")
         return
-    
+
     total_mesas = int(entry_mesas.get())
     salon_num = (indicemesa // total_mesas) + 1
     mesa_num = (indicemesa % total_mesas) + 1
@@ -78,8 +77,10 @@ def mostrar_datos_jurados(indicemesa):
     for i, jurado in enumerate(jurados):
         salida += f"Jurado #{i+1}:\nNombre: {jurado[0]}\nCédula: {jurado[1]}\nTeléfono: {jurado[2]}\nDirección: {jurado[3]}\n\n"
 
-    nombremesa = f"mesa {mesa_num}"
-    votantesenmesa = [v for v in votantes if v["mesa"].strip().lower() == nombremesa and v["salon"].strip().lower() == f"salon {salon_num}"]
+    nombremesa = f"mesa {mesa_num}".lower()
+    nombresalon = f"salón {salon_num}".lower()
+
+    votantesenmesa = [v for v in votantes if v["mesa"] == nombremesa and v["salon"] == nombresalon]
 
     if votantesenmesa == []:
         salida += "--- No hay votantes asignados a esta mesa---"
@@ -124,7 +125,7 @@ def formulariojurado(indicemesa):
 def generarvotacion():
     for Eliminar in ContenedorSalon.winfo_children():
         Eliminar.destroy()
-    
+
     totalsalones = int(entry_salon.get())
     total_mesas = int(entry_mesas.get())
     total_jurados = int(entry_jurados.get())
