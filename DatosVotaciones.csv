@@ -1,0 +1,22 @@
+"------------Centro de Votación-----------
+"
+Cantidad de Salones,2
+Cantidad de Mesas por Salón,3
+Cantidad de Jurados por Mesa,1
+
+"---------Jurados por Mesa--------
+"
+Mesa 1,pancho,009988,310 320,cra 1
+Mesa 2,Pamela,998877,310 329,cra 2
+Mesa 3,Pedro,887766,310 389,cra 3
+Mesa 4,amelia,665544,310 298,cra 4
+Mesa 5,alejandra,332211,320 498,cra 5
+Mesa 6,Anibal,221133,321 043,cra 6
+
+"-----------Votantes---------
+"
+Juan Pérez,98765432,salón 1,mesa 1
+María López,11223344,salón 1,mesa 2
+Carlos Ramírez,55667788,salón 2,mesa 1
+Ana Gómez,12345678,salón 2,mesa 3
+Pedro Sánchez,87654321,salón 1,mesa 1

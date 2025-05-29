@@ -2,6 +2,11 @@ import tkinter as tk
 from tkinter import messagebox
 from tkinter import filedialog
 import csv
+import json
+import pandas as pd
+import matplotlib.pyplot as plt
+
+
 
 MainWindow = tk.Tk()
 MainWindow.title("Votaciones")
@@ -9,9 +14,9 @@ MainWindow.geometry("800x600")
 
 votantes = []
 juradospormesa = []
-cedulas_jurados = set()
-cedulas_votantes = set()
-resultados_votacion = []
+cedulasjurados = set()
+cedulasvotantes = set()
+resultadosvotacion = []
 asistencias = []
 
 
@@ -39,18 +44,18 @@ def guardadatosvotaciones():
     archivo.close()
     messagebox.showinfo("Los datos fueron guardados exitosamente en 'DatosVotaciones.csv'")
 
-def cargar_votantes():
+def cargarvotantes():
     archivo = filedialog.askopenfilename(title="Seleccionar archivo de votantes", filetypes=[("CSV files", "*.csv")])
     if archivo != "":
         with open(archivo, newline='', encoding='utf-8') as f:
             lector = csv.reader(f)
             next(lector, None)
             votantes.clear()
-            cedulas_votantes.clear()
+            cedulasvotantes.clear()
             for fila in lector:
                 if len(fila) >= 4:
                     cedula = fila[1].strip()
-                    if cedula in cedulas_votantes:
+                    if cedula in cedulasvotantes:
                         messagebox.showerror("Error", f"Cédula duplicada detectada: {cedula}")
                         return
                     votantes.append({
@@ -59,7 +64,7 @@ def cargar_votantes():
                         "salon": fila[2].strip().lower(),
                         "mesa": fila[3].strip().lower()
                     })
-                    cedulas_votantes.add(cedula)
+                    cedulasvotantes.add(cedula)
         messagebox.showinfo("Carga exitosa", "Votantes cargados correctamente.")
     else:
         messagebox.showerror("Error", "No se seleccionó ningún archivo.")
@@ -75,52 +80,52 @@ def buscarvotante():
             return
     messagebox.showerror("Error", "No se encontró el votante.")
 
-def mostrar_datos_jurados(indicemesa):
+def mostrardatosjurados(indicemesa):
     jurados = juradospormesa[indicemesa]
     if jurados == []:
         messagebox.showerror("Error", "No hay jurados registrados para esta mesa.")
         return
 
-    total_mesas = int(entry_mesas.get())
-    salon_num = (indicemesa // total_mesas) + 1
-    mesa_num = (indicemesa % total_mesas) + 1
+    totalmesas = int(entry_mesas.get())
+    salonnum = (indicemesa // totalmesas) + 1
+    mesanum = (indicemesa % totalmesas) + 1
 
     salida = ""
     for i, jurado in enumerate(jurados):
         salida += f"Jurado #{i+1}:\nNombre: {jurado[0]}\nCédula: {jurado[1]}\nTeléfono: {jurado[2]}\nDirección: {jurado[3]}\n\n"
 
-    nombremesa = f"mesa {mesa_num}".lower()
-    nombresalon = f"salón {salon_num}".lower()
+    nombremesa = f"mesa {mesanum}".lower()
+    nombresalon = f"salón {salonnum}".lower()
 
     votantesenmesa = [v for v in votantes if v["mesa"] == nombremesa and v["salon"] == nombresalon]
 
     if votantesenmesa == []:
-        salida += "--- No hay votantes asignados a esta mesa---"
+        salida += " No hay votantes asignados a esta mesa"
     else:
-        salida += "--- Votantes ---\n"
+        salida += " Votantes \n"
         for v in votantesenmesa:
             salida += f"Nombre: {v['nombre']}\nCédula: {v['cedula']}\n\n"
 
-    messagebox.showinfo(f"Datos del Salón {salon_num} - Mesa {mesa_num}", salida)
+    messagebox.showinfo(f"Datos del Salón {salonnum} - Mesa {mesanum}", salida)
 
 def guardardatos(entradas, FrameFormulario, indicemesa):
     DatosGuardados = []
 
     for entry in entradas:
         if entry.get() == "":
-            messagebox.showerror("Error", "Por favor, complete todos los campos.")
+            messagebox.showerror("Error, Por favor, complete todos los campos.")
             return
 
     cedula = entradas[1].get().strip()
-    if cedula in cedulas_jurados:
-        messagebox.showerror("Error", "La cédula del jurado ya ha sido registrada.")
+    if cedula in cedulasjurados:
+        messagebox.showerror("Error, La cédula del jurado ya ha sido registrada.")
         return
 
     for entry in entradas:
         DatosGuardados.append(entry.get())
 
     juradospormesa[indicemesa].append(DatosGuardados)
-    cedulas_jurados.add(cedula)
+    cedulasjurados.add(cedula)
 
     label = tk.Label(FrameFormulario, text="Los datos han sido guardados correctamente")
     label.pack()
@@ -149,16 +154,16 @@ def generarvotacion():
 
     try:
         totalsalones = int(entry_salon.get())
-        total_mesas = int(entry_mesas.get())
+        totalmesas = int(entry_mesas.get())
         total_jurados = int(entry_jurados.get())
-        if totalsalones <= 0 or total_mesas <= 0 or total_jurados <= 0:
+        if totalsalones <= 0 or totalmesas <= 0 or total_jurados <= 0:
             raise ValueError
     except ValueError:
         messagebox.showerror("Error", "Ingrese números enteros positivos para salones, mesas y jurados.")
         return
 
     juradospormesa.clear()
-    totalmesastotal = totalsalones * total_mesas
+    totalmesastotal = totalsalones * totalmesas
 
     for _ in range(totalmesastotal):
         juradospormesa.append([])
@@ -169,16 +174,16 @@ def generarvotacion():
         frame_salon = tk.LabelFrame(ContenedorSalon, text=f"Salón {i+1}")
         frame_salon.grid(row=i, column=2)
 
-        for m in range(total_mesas):
-            frame_mesa = tk.Frame(frame_salon)
-            frame_mesa.pack()
+        for m in range(totalmesas):
+            framemesa = tk.Frame(frame_salon)
+            framemesa.pack()
 
-            btn_mesa = tk.Button(frame_mesa, text=f"Mesa {m+1}", width=10,
-                                 command=lambda index=indicemesa_global: mostrar_datos_jurados(index))
-            btn_mesa.pack(side="left")
+            btnmesa = tk.Button(framemesa, text=f"Mesa {m+1}", width=10,
+                                 command=lambda index=indicemesa_global: mostrardatosjurados(index))
+            btnmesa.pack(side="left")
 
             for j in range(total_jurados):
-                btn_jurado = tk.Button(frame_mesa, text=f"Jurado {j+1}", width=10,
+                btn_jurado = tk.Button(framemesa, text=f"Jurado {j+1}", width=10,
                                        command=lambda index=indicemesa_global: formulariojurado(index))
                 btn_jurado.pack(side="left")
 
@@ -223,7 +228,7 @@ def registrar_asistencia():
             messagebox.showerror("Error", "Hora inválida o mayor a las 4:00 PM.")
             return
 
-        if cedula not in cedulas_votantes:
+        if cedula not in cedulasvotantes:
             messagebox.showerror("Error", "La cédula no corresponde a ningún votante.")
             return
 
@@ -238,7 +243,6 @@ def registrar_asistencia():
 
     tk.Button(ventana, text="Registrar", command=guardar_asistencia).pack()
 
-import json
 
 def cargar_resultados():
     archivo = filedialog.askopenfilename(title="Seleccionar archivo de resultados", filetypes=[("Archivos", "*.csv *.json")])
@@ -246,36 +250,108 @@ def cargar_resultados():
         messagebox.showerror("Error", "No se seleccionó ningún archivo.")
         return
 
-    resultados_votacion.clear()
+    resultadosvotacion.clear()
     try:
         if archivo.endswith(".csv"):
             with open(archivo, newline='', encoding='utf-8') as f:
                 lector = csv.DictReader(f)
                 for fila in lector:
-                    resultados_votacion.append(fila)
+                    resultadosvotacion.append(fila)
         elif archivo.endswith(".json"):
             with open(archivo, 'r', encoding='utf-8') as f:
-                resultados_votacion.extend(json.load(f))
+                resultadosvotacion.extend(json.load(f))
         else:
             raise ValueError("Formato no soportado")
         messagebox.showinfo("Éxito", "Resultados cargados correctamente.")
     except Exception as e:
         messagebox.showerror("Error", f"No se pudieron cargar los resultados:\n{e}")
 
-def buscar_jurado():
+def buscarjurado():
     cedula = EntryBuscarJurado.get()
     if cedula == "":
-        messagebox.showerror("Error", "Por favor, ingrese una cédula.")
+        messagebox.showerror("Error, Por favor, ingrese una cédula.")
         return
     for i, jurados in enumerate(juradospormesa):
         for jurado in jurados:
             if jurado[1] == cedula:
-                salon_num = (i // int(entry_mesas.get())) + 1
-                mesa_num = (i % int(entry_mesas.get())) + 1
+                salonnum = (i // int(entry_mesas.get())) + 1
+                mesanum = (i % int(entry_mesas.get())) + 1
                 messagebox.showinfo("Jurado encontrado",
-                                    f"Nombre: {jurado[0]}\nCédula: {jurado[1]}\nTeléfono: {jurado[2]}\nDirección: {jurado[3]}\nAsignado a Salón {salon_num}, Mesa {mesa_num}")
+                                    f"Nombre: {jurado[0]}\nCédula: {jurado[1]}\nTeléfono: {jurado[2]}\nDirección: {jurado[3]}\nAsignado a Salón {salonnum}, Mesa {mesanum}")
                 return
-    messagebox.showerror("Error", "No se encontró el jurado.")
+    messagebox.showerror("Error, No se encontró el jurado.")
+
+def generarestadisticas():
+    if not resultadosvotacion:
+        messagebox.showerror("Error, No hay resultados de votación cargados.")
+        return
+
+    try:
+        rv = pd.DataFrame(resultadosvotacion)
+
+        preguntas = [col for col in rv.columns if col.startswith('p')]
+        resumen = ""
+
+        for pregunta in preguntas:
+            conteo = rv[pregunta].value_counts()
+            resumen += f"{pregunta.upper()}:\n"
+            resumen += f"  Sí: {conteo.get('Sí', 0)}\n"
+            resumen += f"  No: {conteo.get('No', 0)}\n\n"
+
+        conteomesas = rv.groupby(['salon', 'mesa']).size()
+        resumen += "--- Total de votos por mesa ---\n"
+        for (salon, mesa), total in conteomesas.items():
+            resumen += f"Salón {salon}, Mesa {mesa}: {total} votos\n"
+
+        messagebox.showinfo("Resumen Estadístico", resumen)
+
+    except Exception as e:
+        messagebox.showerror(f"Error No se pudo generar el resumen:\n{e}")
+
+def guardarresumencsv():
+    if not resultadosvotacion:
+        messagebox.showerror("Error, No hay resultados para guardar.")
+        return
+
+    try:
+        rv = pd.DataFrame(resultadosvotacion)
+        nombrearchivo = filedialog.asksaveasfilename(defaultextension=".csv", title="Guardar resumen", filetypes=[("CSV files", "*.csv")])
+        if nombrearchivo:
+            rv.to_csv(nombrearchivo, index=False)
+            messagebox.showinfo("Éxito", f"Resumen guardado en {nombrearchivo}")
+    except Exception as e:
+        messagebox.showerror("Error", f"No se pudo guardar el archivo:\n{e}")
+
+def graficarresultados():
+    if not resultadosvotacion:
+        messagebox.showerror("Error", "No hay resultados cargados.")
+        return
+
+    try:
+        rv = pd.DataFrame(resultadosvotacion)
+        preguntas = [col for col in rv.columns if col.startswith('p')]
+
+        si = []
+        no = []
+        for p in preguntas:
+            si.append(rv[p].value_counts().get("Sí", 0))
+            no.append(rv[p].value_counts().get("No", 0))
+
+        x = range(len(preguntas))
+        plt.bar(x, si, width=0.4, label='Sí', align='center', color='green')
+        plt.bar([i + 0.4 for i in x], no, width=0.4, label='No', align='center', color='red')
+        plt.xticks([i + 0.2 for i in x], preguntas)
+        plt.ylabel("Cantidad de votos")
+        plt.title("Resultados por pregunta")
+        plt.tight_layout()
+        plt.show()
+    except Exception as e:
+        messagebox.showerror("Error", f"No se pudo graficar:\n{e}")
+
+
+tk.Button(MainWindow, text="Resumen Estadístico", command=generarestadisticas).grid(row=11, column=0)
+tk.Button(MainWindow, text="Guardar Resumen CSV", command=guardarresumencsv).grid(row=11, column=1)
+tk.Button(MainWindow, text="Visualizar Resultados", command=graficarresultados).grid(row=11, column=2)
 
 
 tk.Button(MainWindow, text="Registrar Asistencia", command=registrar_asistencia).grid(row=8, column=0)
@@ -284,7 +360,7 @@ tk.Button(MainWindow, text="Cargar Resultados", command=cargar_resultados).grid(
 tk.Label(MainWindow, text="Buscar Jurado por Cédula:").grid(row=10, column=0)
 EntryBuscarJurado = tk.Entry(MainWindow)
 EntryBuscarJurado.grid(row=10, column=1)
-tk.Button(MainWindow, text="Buscar", command=buscar_jurado).grid(row=10, column=2)
+tk.Button(MainWindow, text="Buscar", command=buscarjurado).grid(row=10, column=2)
 
 
 titulo = tk.Label(MainWindow, text="VOTACIONES", font=("Arial", 18, "bold"))
@@ -305,7 +381,7 @@ entry_jurados.grid(row=3, column=1)
 tk.Button(MainWindow, text="Generar Centro de Votación", command=generarvotacion).grid(row=4, column=0)
 tk.Button(MainWindow, text="Guardar centro de votacion", command=guardadatosvotaciones).grid(row=5, column=0)
 tk.Button(MainWindow, text="Cargar Centro de votacion").grid(row=6, column=0)
-tk.Button(MainWindow, text="Cargar Datos votantes", command=cargar_votantes).grid(row=7, column=0)
+tk.Button(MainWindow, text="Cargar Datos votantes", command=cargarvotantes).grid(row=7, column=0)
 
 tk.Label(MainWindow, text="Buscar Votante por Cédula:").grid(row=8, column=0)
 EntryBuscarVotante = tk.Entry(MainWindow)
